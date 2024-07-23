@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Sheets API Quickstart</title>
+  <meta charset="utf-8" /> 
+   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous" />
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <p>Google Sheet</p>
+
+  <!--Add buttons to initiate auth sequence and sign out-->
+  <div>
+    <button id="authorize_button" onclick="handleAuthClick()">Iniciar sesión</button>
+    <button id="signout_button" onclick="handleSignoutClick()">Cerrar sesión</button>
+  </div>
+
+  <header style="width: 100%;  ">
+
+
+    <h2 style="text-align:center; color:white;">Data consultant
+    </h2>
+</header>
+<br>
+<main style="margin: 10px;">
+
+
+    <div class="row justify-content-center">
+
+        <div class="col-6">
+            <div class="mb-5">
+
+
+
+
+
+
+
+                <form action="" method="post">
+
+                    <label id="label" data-label="200">Buscar:</label>
+                    <input type="text" class="form-control" name="" id="campo"  oninput="mostrardatos()"/>
+
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+
+
+
+            <div class="table-responsive">
+                <table class="table table-hover table-bordered">
+                    <thead class="table-dark">
+                        <tr>
+                 
+                            <th scope="col">Documento</th>
+                            <th scope="col">Nombres</th>
+                            <th scope="col">Apellidos</th>
+                            <th scope="col">Correo/Usuario</th>
+                            <th scope="col">Clave</th>
+                            <th scope="col">CorreoPersonal</th>
+                            <th scope="col">Programa</th>
+                            <th scope="col">celular</th>
+
+                        </tr>
+                    </thead>
+                    <tbody id="content_table_body">
+                  
+
+
+
+                    </tbody>
+                </table>
+                </div>
+   </div> 
+
+
+            <br>
+<div id="text-dom"> 
+   </div>
+
+
+
+
+</main>
+  <pre id="content" style="white-space: pre-wrap;"></pre>
+
+  <script type="text/javascript">
+    /* exported gapiLoaded */
+    /* exported gisLoaded */
+    /* exported handleAuthClick */
+    /* exported handleSignoutClick */
+
+    // TODO(developer): Set to client ID and API key from the Developer Console
+
+    const CLIENT_ID = '175588862676-6q0474be0niui8ucj4itls05810hphan.apps.googleusercontent.com';
+    const API_KEY = 'AIzaSyAcnkC1IBzKiuxvV5VbShS0ATJjSFg8MD4';
+    // Discovery doc URL for APIs used by the quickstart
+    const DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
+
+    // Authorization scopes required by the API; multiple scopes can be
+    // included, separated by spaces.
+    const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
+
+    let tokenClient;
+    let gapiInited = false;
+    let gisInited = false;
+
+    document.getElementById('authorize_button').style.visibility = 'hidden';
+    document.getElementById('signout_button').style.visibility = 'hidden';
+
+    /**
+     * Callback after api.js is loaded.
+     */
+    function gapiLoaded() {
+      gapi.load('client', initializeGapiClient);
+    }
+
+    /**
+     * Callback after the API client is loaded. Loads the
+     * discovery doc to initialize the API.
+     */
+    async function initializeGapiClient() {
+      await gapi.client.init({
+        apiKey: API_KEY,
+        discoveryDocs: [DISCOVERY_DOC],
+      });
+      gapiInited = true;
+      maybeEnableButtons();
+    }
+
+    /**
+     * Callback after Google Identity Services are loaded.
+     */
+    function gisLoaded() {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPES,
+        callback: '', // defined later
+      });
+      gisInited = true;
+      maybeEnableButtons();
+    }
+
+    /**
+     * Enables user interaction after all libraries are loaded.
+     */
+    function maybeEnableButtons() {
+      if (gapiInited && gisInited) {
+        document.getElementById('authorize_button').style.visibility = 'visible';
+      }
+    }
+
+    /**
+     *  Sign in the user upon button click.
+     */
+    function handleAuthClick() {
+      tokenClient.callback = async (resp) => {
+        if (resp.error !== undefined) {
+          throw (resp);
+        }
+        document.getElementById('signout_button').style.visibility = 'visible';
+        document.getElementById('authorize_button').innerText = 'Refresh';
+        await listMajors();
+      };
+
+      if (gapi.client.getToken() === null) {
+        // Prompt the user to select a Google Account and ask for consent to share their data
+        // when establishing a new session.
+        tokenClient.requestAccessToken({ prompt: 'consent' });
+      } else {
+        // Skip display of account chooser and consent dialog for an existing session.
+        tokenClient.requestAccessToken({ prompt: '' });
+      }
+    }
+
+    /**
+     *  Sign out the user upon button click.
+     */
+    function handleSignoutClick() {
+      const token = gapi.client.getToken();
+      if (token !== null) {
+        google.accounts.oauth2.revoke(token.access_token);
+        gapi.client.setToken('');
+        document.getElementById('content').innerText = '';
+        document.getElementById('authorize_button').innerText = 'Authorize';
+        document.getElementById('signout_button').style.visibility = 'hidden';
+      }
+    }
+
+    let inputsearch = document.querySelector('input')
+
+    function input_data_text(){
+
+      inputsearch.onkeyup=(e) =>{
+
+       let userData = e.value
+       document.getElementById('content').innerText = "Resultado input: " + userData;
+       console.log(userData)
+      }
+    }
+
+    /**
+     * Print the names and majors of students in a sample spreadsheet:
+     * https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
+  */
+  var respon
+  function mostrardatos(){
+
+
+
+     respon = document.getElementById('campo').value
+    console.log(respon)
+    listMajors()
+    return respon
+
+  }
+
+    async function listMajors() {
+      let response;
+      try {
+        // Fetch first 10 files
+        response = await gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: '1Sw6_zYTqpoy31ZXBja_rog1Xets6Lqc4ZXRFuVMG6Ec',
+          range: 'Turnos!A:G',
+        
+        });
+      } catch (err) {
+
+
+        document.getElementById("content_table_body").innerHTML =   '<td colspan="8" style="text-align:center;"> Sin conexión </td>'
+
+        console.error('Error de api: ' + err)
+
+        return;
+      }
+      const range = response.result;
+      if (!range || !range.values || range.values.length == 0) {
+        console.warn('no se encontraron errores')
+        return;
+      }
+      console.log(range.values)
+      // Flatten to string to display
+      turnos = [];
+      range.values.forEach((fila) => {
+
+        const nuevoTurno = {
+          id: fila[0],
+          cliente: fila[1],
+          email: fila[2],
+          modelo: fila[3],
+          problema: fila[4],
+          fecha_terminado: fila[5],
+          comentario: fila[6]
+        };
+        turnos.push(nuevoTurno);
+
+      });
+
+      for (let index = 0; index < turnos.length; index++) {
+
+
+        const element = turnos[index].id;
+        console.log(element)
+      }
+///filter
+      const resultado = turnos.filter(ids => ids.id == respon)
+      //document.getElementById('content').innerText = "Resultado filter: " + resultado;
+     
+      console.log(resultado.length == 0)
+if(resultado.length == 0){
+  document.getElementById("content_table_body").innerHTML =   '<td colspan="8" style="text-align:center;"> Sin resultados </td>'
+
+    }else{
+
+      let ver_resul = ""
+      let html_table_boddy = "";
+      for (let index = 0; index < resultado.length; index++) {
+
+        //ver_resul = ver_resul + " " + resultado[index].id + " " + resultado[index].cliente + " " + resultado[index].email + " \n";
+
+        html_table_boddy = html_table_boddy + 
+           '<tr id="alumno' + index +'">' + '<td>' + resultado[index].id +'</td>' + 
+           '<td>' + resultado[index].cliente + '</td>' +
+           '<td> NULL </td>' + 
+           '<td> NULL </td>' + 
+           '<td> NULL </td>' + 
+           '<td> ' + resultado[index].email + ' </td>' + 
+           '<td> NULL </td>' + 
+           '<td> NULL </td>' + 
+           '<td><a class="btn btn-primary" target="_blank"  href="http://localhost/consultor_php/index.php?user='+ resultado[index].cliente +'&campo='+ resultado[index].email +'" role="button">Link</a>';
+
+
+      //  document.getElementById('content').innerText = ver_resul
+
+        document.getElementById("content_table_body").innerHTML = html_table_boddy
+        console.log(ver_resul)
+      }
+
+    }
+
+      //const output = range.values.reduce(
+      //  (str, row) => `${str}${row[0]}, ${row[4]}\n`,
+      // 'Name, Major:\n');
+      // document.getElementById('content').innerText = output;
+    }
+  </script> 
+
+
+  <script src="Js.js" ></script>
+  <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+  <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+</body>
+
+</html>
